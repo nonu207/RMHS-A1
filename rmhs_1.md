@@ -15,13 +15,22 @@ Files produced:
 - Tables: [odisha_analysis_tables.txt](odisha_analysis_tables.txt)
 - Graphs: `graph1_prevalence_econ_sector.png`, `graph2_seeking_rate.png`, `graph3_expenditure_boxplot.png`, `graph4_prevalence_social_group.png`, `graph5_prevalence_family_size.png`, `graph6_source_finance.png` (all saved in the working directory).
 
+Files produced:
+- Tables: [odisha_analysis_tables.txt](odisha_analysis_tables.txt)
+- Graphs: `graph1_prevalence_econ_sector.png`, `graph2_seeking_rate.png`, `graph3_expenditure_boxplot.png`, `graph4_prevalence_social_group.png`, `graph5_prevalence_family_size.png`, `graph6_source_finance.png` (all saved in the working directory).
+
 ## Data cleaning & feature engineering (sections A–I in code)
 - A. Missing values: columns `prop_spells_treated` and `Major_source_of_finance` are filled with 0 via `DataFrame.fillna(0)`.
 - B. Outlier handling: `Household_usual_consumer_expendi` is capped at its 99th percentile (`exp_cap`) and saved as `Household_usual_consumer_expendi_clean` using `np.where`.
 - C. Economic status: `pd.qcut` on the cleaned expenditure divides households into 4 quartile bins labeled `['Poorest','Lower Middle','Upper Middle','Richest']` and stored in `Economic_Status`.
+- B. [CRITICAL FIX] Invalid/Unrealistic Expenditure Removal and Recalculation:
+  - The code first removes households with `Household_usual_consumer_expendi` <= 100 (treated as unrealistic for this analysis) and creates `valid_exp_df` for subsequent steps.
+  - The 99th percentile (`exp_cap`) is computed on `valid_exp_df` and capping is applied there; quartiles (`Economic_Status`) are then created from the capped, valid expenditures.
+  - After these steps the script replaces `odisha_df` with `valid_exp_df`, so subsequent tables/plots use the cleaned sample.
 - D. Sector label: maps numeric `Sector` codes to `'Rural'`/`'Urban'` into `Sector_Label` via `Series.map`.
 - E. Family size bins: `pd.cut` on `Household_size` with bins [0,3,6,20] giving labels `'Small (1-3)'`, `'Medium (4-6)'`, `'Large (7+)'` stored in `Family_Size_Bin`.
 - F. Social group: maps `Social_group` codes to labels (`ST`, `SC`, `OBC`, `Others`) stored in `Social_Group_Label`.
+- E. Social group cleaning: before mapping, the script filters `Social_group` to only keep standard codes `[1,2,3,9]` and removes rows with undefined/nonstandard codes. This reduces the sample and ensures only valid groups appear in the analysis.
 - G. Financing label: maps `Major_source_of_finance` to human labels saved to `Finance_Label`.
 - H. Prevalence indicator: `Has_Ailment` is binary (1 if `spells_count` > 0 else 0) via `apply(lambda x: 1 if x>0 else 0)`.
 - I. `sick_households` is a subset where `Has_Ailment == 1` (used in treatment- and expenditure-related analyses).
@@ -41,11 +50,15 @@ Tables generated in the script:
 - `table4` — Analysis by `Family_Size_Bin`.
 - `table5` — Cross-tabulation of `sick_households` by `Economic_Status` (rows) vs `Finance_Label` (columns): uses `pd.crosstab(..., normalize='index') * 100` so each row sums to 100 (shows distribution of financing sources within each economic status).
 
+Note: In the code the written header for table 5 is `"--- TABLE 5: SOURCE OF FINANCE (% of Sick HH) ---"`, i.e., the crosstab shows percent distribution of sources among sick households within each economic status.
+
 Writing tables to file:
 - The script writes formatted text into `odisha_analysis_tables.txt` and uses `DataFrame.round(2).to_string()` to write human-readable tables (rounded to 2 decimals). The file includes headers for each table.
 
 ## Plotting methods — file-by-file explanation
 - Global settings: `sns.set_theme(style="whitegrid")` sets Seaborn theme for consistent styling.
+
+Also: after the cleaning steps the script prints the new sample size ("Cleaned Social Groups. New Sample Size: ...") so outputs and plots reflect the filtered sample.
 
 - Graph 1: `graph1_prevalence_econ_sector.png`
   - Plot type: `sns.barplot`
@@ -67,12 +80,16 @@ Writing tables to file:
   - Palette: `Set2`, `legend=False` and `plt.yscale('log')` to show expenditures on a log scale (helps with skew and outliers).
   - Notes: Boxplots per-economic-status show expenditure distribution (log-scale to reduce skew). Because expenditures were capped earlier only expenditure variable was capped indirectly by sick_households selection.
 
+    - Implementation detail: the script subsets `spenders = sick_households[sick_households['outpatient_expenditure_total_Rs'] > 0]` before plotting and applies `plt.yscale('log')` for readability.
+
 - Graph 4: `graph4_prevalence_social_group.png`
   - Plot type: `sns.barplot`
   - Data: `odisha_df`
   - x: `Social_Group_Label`, y: `Has_Ailment` (proportion), hue: `Social_Group_Label` (legend disabled)
   - Palette: `viridis`, estimator: `np.mean` (explicitly set), `errorbar=None`.
   - Notes: Compares prevalence across social groups.
+
+    - Implementation detail: the code explicitly filters social groups to the standard codes before plotting, so the plot title in the script is `Prevalence by Social Group` (and the code comment marks it as "Cleaned").
 
 - Graph 5: `graph5_prevalence_family_size.png`
   - Plot type: `sns.barplot`

@@ -54,11 +54,15 @@ odisha_df['Family_Size_Bin'] = pd.cut(
     labels=['Small (1-3)', 'Medium (4-6)', 'Large (7+)']
 )
 
-# E. [UPDATED] Social Group Label
-# 1=ST, 2=SC, 3=OBC, 9=Others. 
-# Anything else (4, 5, 10) becomes 'Undefined Codes'.
+# E. [CLEANING] Social Group Label
+# Standard Codes: 1=ST, 2=SC, 3=OBC, 9=Others
+# We FILTER OUT any rows with undefined codes (like 4, 5, 10) to strictly clean the data.
+valid_social_groups = [1, 2, 3, 9]
+odisha_df = odisha_df[odisha_df['Social_group'].isin(valid_social_groups)].copy()
+
 social_map = {1: 'ST', 2: 'SC', 3: 'OBC', 9: 'Others'}
-odisha_df['Social_Group_Label'] = odisha_df['Social_group'].map(social_map).fillna('Undefined Codes')
+odisha_df['Social_Group_Label'] = odisha_df['Social_group'].map(social_map)
+print(f"✅ Cleaned Social Groups. New Sample Size: {len(odisha_df)}")
 
 # F. Source of Finance Label
 finance_map = {0: 'None', 1: 'Income/Savings', 2: 'Borrowings', 3: 'Sale of Assets', 4: 'Friends/Family', 9: 'Other'}
@@ -134,7 +138,7 @@ plt.savefig("graph3_expenditure_boxplot.png", dpi=150)
 plt.close()
 print("Saved: graph3_expenditure_boxplot.png")
 
-# Graph 4: Prevalence by Social Group (Updated Labeling)
+# Graph 4: Prevalence by Social Group (Cleaned)
 plt.figure(figsize=(10, 6))
 sns.barplot(data=odisha_df, x='Social_Group_Label', y='Has_Ailment', palette="viridis", estimator=np.mean, errorbar=None, hue='Social_Group_Label', legend=False)
 plt.title('Prevalence by Social Group')
