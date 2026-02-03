@@ -1,3 +1,4 @@
+
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -126,17 +127,18 @@ plt.savefig("graph2_seeking_rate.png", dpi=150)
 plt.close()
 print("Saved: graph2_seeking_rate.png")
 
-# Graph 3: Medical Expenditure Distribution
+# Graph 3: Medical Expenditure Distribution (CHANGED TO HISTOGRAM + KDE)
 plt.figure(figsize=(10, 6))
 spenders = sick_households[sick_households['outpatient_expenditure_total_Rs'] > 0]
-sns.boxplot(data=spenders, x='Economic_Status', y='outpatient_expenditure_total_Rs', palette="Set2", hue='Economic_Status', legend=False)
-plt.yscale('log')
-plt.title('Medical Expenditure Distribution (Log Scale)')
-plt.ylabel('Expenditure (INR)')
+#  - This visualizes the skewness
+sns.histplot(data=spenders, x='outpatient_expenditure_total_Rs', kde=True, log_scale=True, color="teal", element="step")
+plt.title('Distribution of Medical Expenditure (Histogram + KDE)\nHigh Right Skewness Visible', fontsize=12)
+plt.ylabel('Frequency (Count of Households)')
+plt.xlabel('Expenditure (INR) - Log Scale')
 plt.tight_layout()
-plt.savefig("graph3_expenditure_boxplot.png", dpi=150)
+plt.savefig("graph3_expenditure_histogram_kde.png", dpi=150)
 plt.close()
-print("Saved: graph3_expenditure_boxplot.png")
+print("Saved: graph3_expenditure_histogram_kde.png (Replaced Boxplot with Histogram+KDE)")
 
 # Graph 4: Prevalence by Social Group (Cleaned)
 plt.figure(figsize=(10, 6))
